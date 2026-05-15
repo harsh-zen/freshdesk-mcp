@@ -21,15 +21,23 @@ def _bool_from_env(name: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _int_from_env(name: str, default: int) -> int:
-    """Parse an integer environment variable value."""
-    value = os.getenv(name)
-    if value is None:
-        return default
-    try:
-        return int(value)
-    except ValueError:
-        return default
+def _resolve_mcp_port(default: int = 8000) -> int:
+    """Resolve MCP port, preferring MCP_PORT and then Render's PORT."""
+    mcp_port = os.getenv("MCP_PORT")
+    if mcp_port:
+        try:
+            return int(mcp_port)
+        except ValueError:
+            pass
+
+    render_port = os.getenv("PORT")
+    if render_port:
+        try:
+            return int(render_port)
+        except ValueError:
+            pass
+
+    return default
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -41,7 +49,7 @@ if DEFAULT_TRANSPORT not in {"stdio", "sse", "streamable-http"}:
     DEFAULT_TRANSPORT = "stdio"
 
 MCP_HOST = os.getenv("MCP_HOST", "127.0.0.1")
-MCP_PORT = _int_from_env("MCP_PORT", 8000)
+MCP_PORT = _resolve_mcp_port(8000)
 MCP_STREAMABLE_HTTP_PATH = os.getenv("MCP_STREAMABLE_HTTP_PATH", "/mcp")
 MCP_SSE_PATH = os.getenv("MCP_SSE_PATH", "/sse")
 MCP_JSON_RESPONSE = _bool_from_env("MCP_JSON_RESPONSE", False)

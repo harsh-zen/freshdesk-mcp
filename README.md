@@ -237,6 +237,24 @@ Container defaults:
 - `MCP_HOST=0.0.0.0`
 - `MCP_PORT=8000`
 
+### Deploy on Render (Recommended for Managed Agents)
+
+This repo includes a Render Blueprint at `render.yaml`.
+
+1. Open Render Dashboard and create a new **Blueprint** from this repository.
+2. During setup, provide values for:
+   - `FRESHDESK_API_KEY`
+   - `FRESHDESK_DOMAIN` (example: `appointy-support.freshdesk.com`)
+3. Deploy.
+
+After deploy, your remote MCP URL is:
+
+```txt
+https://<your-render-service>.onrender.com/mcp
+```
+
+This endpoint is compatible with Claude Managed Agents MCP connector (`type: url` + streamable HTTP).
+
 ### Remote Manifest (`server.json`)
 
 This repository now includes a `server.json` with a `remotes` entry using Streamable HTTP.  

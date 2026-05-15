@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: freshdesk-mcp
+    runtime: docker
+    repo: https://github.com/HarshJa1n/freshdesk-mcp
+    branch: main
+    plan: starter
+    region: oregon
+    autoDeploy: true
+    envVars:
+      - key: FRESHDESK_API_KEY
+        sync: false
+      - key: FRESHDESK_DOMAIN
+        sync: false
+      - key: MCP_TRANSPORT
+        value: streamable-http
+      - key: MCP_HOST
+        value: 0.0.0.0
+      - key: MCP_STREAMABLE_HTTP_PATH
+        value: /mcp
