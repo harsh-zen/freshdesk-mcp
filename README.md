@@ -193,6 +193,59 @@ npx -y @smithery/cli install @effytech/freshdesk_mcp --client claude
 - Replace `YOUR_FRESHDESK_API_KEY` with your actual Freshdesk API key
 - Replace `YOUR_FRESHDESK_DOMAIN` with your Freshdesk domain (e.g., `yourcompany.freshdesk.com`)
 
+### Run as a Remote MCP Server (Streamable HTTP)
+
+This server now supports remote transports:
+- `streamable-http` (recommended for remote use)
+- `sse` (legacy compatibility)
+- `stdio` (default for local desktop tools)
+
+Start it as a remote MCP endpoint:
+
+```bash
+FRESHDESK_API_KEY=<your_api_key> \
+FRESHDESK_DOMAIN=<your_domain> \
+freshdesk-mcp --transport streamable-http --host 0.0.0.0 --port 8000
+```
+
+The MCP endpoint URL will be:
+
+```txt
+http://<your-host>:8000/mcp
+```
+
+You can customize it with:
+- `--streamable-http-path` (default `/mcp`)
+- `--sse-path` (default `/sse`)
+- `--stateless-http` (recommended for horizontally scaled deployments)
+- `--json-response` (JSON responses for streamable HTTP)
+
+### Docker Deployment (Remote)
+
+Build and run:
+
+```bash
+docker build -t freshdesk-mcp .
+docker run --rm -p 8000:8000 \
+  -e FRESHDESK_API_KEY=<your_api_key> \
+  -e FRESHDESK_DOMAIN=<your_domain> \
+  freshdesk-mcp
+```
+
+Container defaults:
+- `MCP_TRANSPORT=streamable-http`
+- `MCP_HOST=0.0.0.0`
+- `MCP_PORT=8000`
+
+### Remote Manifest (`server.json`)
+
+This repository now includes a `server.json` with a `remotes` entry using Streamable HTTP.  
+Set `deployment_host` to your public host and publish with endpoint:
+
+```txt
+https://<deployment-host>/mcp
+```
+
 ## Example Operations
 
 Once configured, you can ask Claude to perform operations like:
@@ -208,7 +261,9 @@ Once configured, you can ask Claude to perform operations like:
 For testing purposes, you can start the server manually:
 
 ```bash
-uvx freshdesk-mcp --env FRESHDESK_API_KEY=<your_api_key> --env FRESHDESK_DOMAIN=<your_domain>
+FRESHDESK_API_KEY=<your_api_key> \
+FRESHDESK_DOMAIN=<your_domain> \
+uvx freshdesk-mcp
 ```
 
 ## Troubleshooting

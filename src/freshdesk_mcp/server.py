@@ -1,18 +1,64 @@
-import httpx
-from mcp.server.fastmcp import FastMCP
+import argparse
+import base64
 import logging
 import os
-import base64
-from typing import Optional, Dict, Union, Any, List
-from enum import IntEnum, Enum
 import re
+from enum import IntEnum, Enum
+from typing import Optional, Dict, Union, Any, List, Literal
+
+import httpx
+from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
+
+TransportType = Literal["stdio", "sse", "streamable-http"]
+
+
+def _bool_from_env(name: str, default: bool = False) -> bool:
+    """Parse a boolean environment variable value."""
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _int_from_env(name: str, default: int) -> int:
+    """Parse an integer environment variable value."""
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
+DEFAULT_TRANSPORT = os.getenv("MCP_TRANSPORT", "stdio").strip().lower()
+if DEFAULT_TRANSPORT == "http":
+    DEFAULT_TRANSPORT = "streamable-http"
+if DEFAULT_TRANSPORT not in {"stdio", "sse", "streamable-http"}:
+    DEFAULT_TRANSPORT = "stdio"
+
+MCP_HOST = os.getenv("MCP_HOST", "127.0.0.1")
+MCP_PORT = _int_from_env("MCP_PORT", 8000)
+MCP_STREAMABLE_HTTP_PATH = os.getenv("MCP_STREAMABLE_HTTP_PATH", "/mcp")
+MCP_SSE_PATH = os.getenv("MCP_SSE_PATH", "/sse")
+MCP_JSON_RESPONSE = _bool_from_env("MCP_JSON_RESPONSE", False)
+MCP_STATELESS_HTTP = _bool_from_env("MCP_STATELESS_HTTP", False)
+MCP_LOG_LEVEL = os.getenv("MCP_LOG_LEVEL", "INFO").upper()
+
 # Initialize FastMCP server
-mcp = FastMCP("freshdesk-mcp")
+mcp = FastMCP(
+    "freshdesk-mcp",
+    host=MCP_HOST,
+    port=MCP_PORT,
+    streamable_http_path=MCP_STREAMABLE_HTTP_PATH,
+    sse_path=MCP_SSE_PATH,
+    json_response=MCP_JSON_RESPONSE,
+    stateless_http=MCP_STATELESS_HTTP,
+    log_level=MCP_LOG_LEVEL,
+)
 
 FRESHDESK_API_KEY = os.getenv("FRESHDESK_API_KEY")
 FRESHDESK_DOMAIN = os.getenv("FRESHDESK_DOMAIN")
@@ -1243,9 +1289,72 @@ async def delete_ticket_summary(ticket_id: int) -> Dict[str, Any]:
         except Exception as e:
             return {"error": f"An unexpected error occurred: {str(e)}"}
 
+def _build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Freshdesk MCP server")
+    parser.add_argument(
+        "--transport",
+        default=DEFAULT_TRANSPORT,
+        choices=["stdio", "sse", "streamable-http", "http"],
+        help="Transport to run (http is an alias for streamable-http).",
+    )
+    parser.add_argument("--host", default=MCP_HOST, help="Host for HTTP/SSE transports.")
+    parser.add_argument("--port", type=int, default=MCP_PORT, help="Port for HTTP/SSE transports.")
+    parser.add_argument(
+        "--streamable-http-path",
+        default=MCP_STREAMABLE_HTTP_PATH,
+        help="Path for streamable HTTP endpoint.",
+    )
+    parser.add_argument(
+        "--sse-path",
+        default=MCP_SSE_PATH,
+        help="Path for SSE endpoint.",
+    )
+    parser.add_argument(
+        "--json-response",
+        action="store_true",
+        default=MCP_JSON_RESPONSE,
+        help="Enable JSON responses for streamable HTTP transport.",
+    )
+    parser.add_argument(
+        "--stateless-http",
+        action="store_true",
+        default=MCP_STATELESS_HTTP,
+        help="Enable stateless streamable HTTP mode for horizontal scalability.",
+    )
+    parser.add_argument(
+        "--log-level",
+        default=MCP_LOG_LEVEL,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Logging level.",
+    )
+    return parser
+
+
 def main():
-    logging.info("Starting Freshdesk MCP server")
-    mcp.run(transport='stdio')
+    parser = _build_arg_parser()
+    args = parser.parse_args()
+    transport: TransportType = "streamable-http" if args.transport == "http" else args.transport
+
+    mcp.settings.host = args.host
+    mcp.settings.port = args.port
+    mcp.settings.streamable_http_path = args.streamable_http_path
+    mcp.settings.sse_path = args.sse_path
+    mcp.settings.json_response = args.json_response
+    mcp.settings.stateless_http = args.stateless_http
+    mcp.settings.log_level = args.log_level
+
+    logging.info(
+        "Starting Freshdesk MCP server with transport=%s host=%s port=%s",
+        transport,
+        args.host,
+        args.port,
+    )
+    if transport == "streamable-http":
+        logging.info("Streamable HTTP endpoint: http://%s:%s%s", args.host, args.port, args.streamable_http_path)
+    elif transport == "sse":
+        logging.info("SSE endpoint: http://%s:%s%s", args.host, args.port, args.sse_path)
+
+    mcp.run(transport=transport)
 
 if __name__ == "__main__":
     main()

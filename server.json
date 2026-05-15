@@ -1,0 +1,19 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.effytech/freshdesk-mcp",
+  "title": "Freshdesk MCP",
+  "description": "Freshdesk MCP server for ticketing, contacts, and company workflows.",
+  "version": "1.2.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://{deployment_host}/mcp",
+      "variables": {
+        "deployment_host": {
+          "description": "Public hostname where this MCP server is deployed (without protocol).",
+          "isRequired": true
+        }
+      }
+    }
+  ]
+}

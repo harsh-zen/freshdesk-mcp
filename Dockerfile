@@ -13,8 +13,12 @@ COPY . /app
 RUN pip install --upgrade pip \
     && pip install .
 
-# Expose port if needed (optional)
-# EXPOSE 8080
+# Default container settings for remote MCP usage
+ENV MCP_TRANSPORT=streamable-http
+ENV MCP_HOST=0.0.0.0
+ENV MCP_PORT=8000
+
+EXPOSE 8000
 
 # Set default command
 CMD ["freshdesk-mcp"]
