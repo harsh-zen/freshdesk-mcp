@@ -9,6 +9,8 @@ from typing import Optional, Dict, Union, Any, List, Literal
 import httpx
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 TransportType = Literal["stdio", "sse", "streamable-http"]
 
@@ -104,6 +106,18 @@ def parse_link_header(link_header: str) -> Dict[str, Optional[int]]:
                 pagination[rel] = page_num
 
     return pagination
+
+
+@mcp.custom_route("/health", methods=["GET"], include_in_schema=False)
+async def health_check(_: Request) -> JSONResponse:
+    """Simple health endpoint for platform liveness checks."""
+    return JSONResponse(
+        {
+            "status": "ok",
+            "service": "freshdesk-mcp",
+            "transport": "mcp",
+        }
+    )
 
 # enums of ticket properties
 class TicketSource(IntEnum):
