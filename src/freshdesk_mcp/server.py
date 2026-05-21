@@ -108,6 +108,16 @@ def parse_link_header(link_header: str) -> Dict[str, Optional[int]]:
     return pagination
 
 
+def _normalize_freshdesk_search_query(query: str) -> str:
+    """Ensure Freshdesk search expressions are wrapped in quotes."""
+    cleaned = query.strip()
+    if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] == '"':
+        return cleaned
+    if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] == "'":
+        return f'"{cleaned[1:-1]}"'
+    return f'"{cleaned}"'
+
+
 @mcp.custom_route("/health", methods=["GET"], include_in_schema=False)
 async def health_check(_: Request) -> JSONResponse:
     """Simple health endpoint for platform liveness checks."""
@@ -455,7 +465,7 @@ async def search_tickets(query: str) -> Dict[str, Any]:
     headers = {
         "Authorization": f"Basic {base64.b64encode(f'{FRESHDESK_API_KEY}:X'.encode()).decode()}"
     }
-    params = {"query": query}
+    params = {"query": _normalize_freshdesk_search_query(query)}
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers, params=params)
         return response.json()
