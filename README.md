@@ -11,7 +11,7 @@ An MCP server implementation that integrates with Freshdesk, enabling AI models 
 - **Freshdesk Integration**: Seamless interaction with Freshdesk API endpoints
 - **AI Model Support**: Enables AI models to perform support operations through Freshdesk
 - **Automated Ticket Management**: Handle ticket creation, updates, and responses
-
+.
 ## Components
 
 ### Tools
